@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Toalett — Adgangskode</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f0f; --surface: #1a1a1a; --border: #2a2a2a;
+    --text: #e8e8e8; --muted: #666; --accent: #c8f542;
+    --danger: #ff4444; --success: #42f5a7;
+    --mono: 'DM Mono', monospace; --sans: 'DM Sans', sans-serif;
+  }
+  html, body {
+    height: 100%; background: var(--bg); color: var(--text);
+    font-family: var(--sans); display: flex;
+    align-items: center; justify-content: center; overflow: hidden;
+  }
+  .container { width: 100%; max-width: 380px; padding: 32px 24px; animation: fadeUp 0.5s ease both; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  .icon { width:56px; height:56px; margin:0 auto 24px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:14px; background:var(--surface); font-size:28px; }
+  h1 { font-family:var(--mono); font-size:13px; font-weight:500; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); text-align:center; margin-bottom:6px; }
+  .subtitle { font-size:14px; color:var(--muted); text-align:center; margin-bottom:36px; line-height:1.5; }
+  .display { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; min-height:72px; display:flex; align-items:center; justify-content:center; }
+  .dots { display:flex; gap:14px; align-items:center; }
+  .dot { width:14px; height:14px; border-radius:50%; border:2px solid var(--border); background:transparent; transition:all 0.2s ease; }
+  .dot.filled { background:var(--accent); border-color:var(--accent); box-shadow:0 0 8px rgba(200,245,66,0.4); }
+  .dot.error { background:var(--danger); border-color:var(--danger); animation:shake 0.4s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-4px);} 40%{transform:translateX(4px);} 60%{transform:translateX(-4px);} 80%{transform:translateX(4px);} }
+  .status-msg { font-family:var(--mono); font-size:12px; letter-spacing:0.05em; color:var(--muted); display:none; }
+  .status-msg.visible { display:block; }
+  .keypad { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+  .key { aspect-ratio:1; background:var(--surface); border:1px solid var(--border); border-radius:12px; color:var(--text); font-family:var(--mono); font-size:20px; font-weight:500; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.12s ease; -webkit-tap-highlight-color:transparent; user-select:none; }
+  .key:active { background:#252525; border-color:var(--accent); color:var(--accent); transform:scale(0.94); }
+  .key.delete { font-size:18px; color:var(--muted); }
+  .key.submit { background:var(--accent); border-color:var(--accent); color:#0f0f0f; font-size:18px; }
+  .key.submit:active { background:#b0d93a; color:#0f0f0f; border-color:#b0d93a; }
+  .hint { font-size:12px; color:var(--muted); text-align:center; margin-top:8px; font-family:var(--mono); letter-spacing:0.04em; }
+  .overlay { position:fixed; inset:0; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; opacity:0; pointer-events:none; transition:opacity 0.4s ease; z-index:10; }
+  .overlay.visible { opacity:1; pointer-events:all; }
+  .overlay-icon { font-size:64px; }
+  .overlay-text { font-family:var(--mono); font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:var(--success); }
+  .overlay-sub { font-size:13px; color:var(--muted); }
+  .progress-bar { width:120px; height:2px; background:var(--border); border-radius:2px; overflow:hidden; margin-top:8px; display:none; }
+  .progress-fill { height:100%; background:var(--success); width:100%; transform-origin:left; }
+  .spinner { width:20px; height:20px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="icon">🔐</div>
+  <h1>Adgangskode</h1>
+  <p class="subtitle">Tast inn dagens kode<br>for å låse opp toalettet</p>
+  <div class="display">
+    <div class="dots" id="dots">
+      <div class="dot"></div><div class="dot"></div>
+      <div class="dot"></div><div class="dot"></div>
+    </div>
+    <span class="status-msg" id="statusMsg"></span>
+  </div>
+  <div class="keypad">
+    <button class="key" onclick="press('1')">1</button>
+    <button class="key" onclick="press('2')">2</button>
+    <button class="key" onclick="press('3')">3</button>
+    <button class="key" onclick="press('4')">4</button>
+    <button class="key" onclick="press('5')">5</button>
+    <button class="key" onclick="press('6')">6</button>
+    <button class="key" onclick="press('7')">7</button>
+    <button class="key" onclick="press('8')">8</button>
+    <button class="key" onclick="press('9')">9</button>
+    <button class="key delete" onclick="del()">⌫</button>
+    <button class="key" onclick="press('0')">0</button>
+    <button class="key submit" onclick="submit()">↵</button>
+  </div>
+  <p class="hint">Spør personalet om koden</p>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-icon">🚪</div>
+  <div class="overlay-text" id="overlayText">Venter på lås...</div>
+  <div class="overlay-sub" id="overlaySub">Behandler koden</div>
+  <div class="spinner" id="spinner"></div>
+  <div class="progress-bar" id="progressBar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+</div>
+
+<script>
+  // Endre denne til din Worker-URL
+  const WORKER_URL = 'https://toalettlas.jarle-andreassen.workers.dev';
+
+  let input = '';
+  const maxLen = 4;
+  let busy = false;
+
+  function updateDots(state) {
+    document.querySelectorAll('.dot').forEach((d, i) => {
+      d.className = 'dot';
+      if (state === 'error') d.classList.add('error');
+      else if (i < input.length) d.classList.add('filled');
+    });
+  }
+
+  function press(digit) {
+    if (input.length >= maxLen || busy) return;
+    input += digit;
+    updateDots();
+    if (input.length === maxLen) setTimeout(submit, 300);
+  }
+
+  function del() {
+    if (busy) return;
+    input = input.slice(0, -1);
+    updateDots();
+    setStatus('');
+  }
+
+  function setStatus(msg) {
+    const el = document.getElementById('statusMsg');
+    const dots = document.getElementById('dots');
+    if (msg) {
+      el.textContent = msg; el.classList.add('visible');
+      dots.style.display = 'none';
+    } else {
+      el.classList.remove('visible');
+      dots.style.display = 'flex';
+    }
+  }
+
+  function showOverlay(text, sub) {
+    document.getElementById('overlayText').textContent = text;
+    document.getElementById('overlaySub').textContent = sub;
+    document.getElementById('spinner').style.display = 'block';
+    document.getElementById('progressBar').style.display = 'none';
+    document.getElementById('overlay').classList.add('visible');
+  }
+
+  function showSuccess() {
+    document.getElementById('overlayText').textContent = 'Tilgang innvilget';
+    document.getElementById('overlaySub').textContent = 'Døren åpnes nå';
+    document.getElementById('spinner').style.display = 'none';
+    const bar = document.getElementById('progressBar');
+    const fill = document.getElementById('progressFill');
+    bar.style.display = 'block';
+    fill.style.transition = 'transform 5000ms linear';
+    fill.style.transform = 'scaleX(0)';
+    setTimeout(() => {
+      document.getElementById('overlay').classList.remove('visible');
+      updateDots();
+    }, 5500);
+  }
+
+  function showError(msg) {
+    document.getElementById('overlay').classList.remove('visible');
+    updateDots('error');
+    setStatus(msg || 'Feil kode — prøv igjen');
+    setTimeout(() => { updateDots(); setStatus(''); }, 2000);
+  }
+
+  async function submit() {
+    if (input.length === 0 || busy) return;
+    const pin = input;
+    input = '';
+    busy = true;
+
+    showOverlay('Sender kode...', 'Venter på ESP32');
+
+    try {
+      // Send PIN til Worker
+      await fetch(`${WORKER_URL}/input`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin })
+      });
+
+      // Poll /result inntil ESP32 svarer (maks 10 sek)
+      const started = Date.now();
+      const timer = setInterval(async () => {
+        if (Date.now() - started > 10000) {
+          clearInterval(timer);
+          busy = false;
+          showError('Tidsavbrudd — prøv igjen');
+          return;
+        }
+        try {
+          const r = await fetch(`${WORKER_URL}/result`);
+          const data = await r.json();
+          if (data.result === 'ok') {
+            clearInterval(timer);
+            busy = false;
+            showSuccess();
+          } else if (data.result === 'error') {
+            clearInterval(timer);
+            busy = false;
+            showError('Feil kode — prøv igjen');
+          }
+          // 'waiting' → fortsett polling
+        } catch(e) {}
+      }, 1000);
+
+    } catch(e) {
+      busy = false;
+      showError('Nettverksfeil — prøv igjen');
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key >= '0' && e.key <= '9') press(e.key);
+    if (e.key === 'Backspace') del();
+    if (e.key === 'Enter') submit();
+  });
+</script>
+</body>
+</html>
