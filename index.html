@@ -89,7 +89,6 @@
 </div>
 
 <script>
-  // Endre denne til din Worker-URL
   const WORKER_URL = 'https://toalett.jarle-andreassen.workers.dev';
 
   let input = '';
@@ -169,12 +168,21 @@
     showOverlay('Sender kode...', 'Venter på ESP32');
 
     try {
-      // Send PIN til Worker
-      await fetch(`${WORKER_URL}/input`, {
+      const postResp = await fetch(`${WORKER_URL}/input`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin })
       });
+
+      console.log('[POST /input] status:', postResp.status);
+      const postData = await postResp.json();
+      console.log('[POST /input] svar:', JSON.stringify(postData));
+
+      if (!postResp.ok) {
+        busy = false;
+        showError('Worker feil — prøv igjen');
+        return;
+      }
 
       // Poll /result inntil ESP32 svarer (maks 10 sek)
       const started = Date.now();
@@ -188,6 +196,7 @@
         try {
           const r = await fetch(`${WORKER_URL}/result`);
           const data = await r.json();
+          console.log('[GET /result]', JSON.stringify(data));
           if (data.result === 'ok') {
             clearInterval(timer);
             busy = false;
@@ -197,11 +206,13 @@
             busy = false;
             showError('Feil kode — prøv igjen');
           }
-          // 'waiting' → fortsett polling
-        } catch(e) {}
+        } catch(e) {
+          console.log('[GET /result] feil:', e.message);
+        }
       }, 1000);
 
     } catch(e) {
+      console.log('[POST /input] catch-feil:', e.message);
       busy = false;
       showError('Nettverksfeil — prøv igjen');
     }
